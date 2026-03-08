@@ -10,12 +10,6 @@
 
 using namespace std;
 
-string floatToStr(float v) {
-    ostringstream ss;
-    ss << v;
-    return ss.str();
-}
-
 class Equation {
 public:
     map<string, float> variables;
@@ -62,8 +56,8 @@ public:
             float valueNum;
 
             if (value == "" || value == "+")  valueNum = 1.0;
-            else if (value == "-")             valueNum = -1.0;
-            else                               valueNum = atof(value.c_str());
+            else if (value == "-")            valueNum = -1.0;
+            else                              valueNum = atof(value.c_str());
 
             if (!is_left_side) valueNum *= -1;
 
@@ -82,23 +76,30 @@ public:
         string left  = left_side(form);
         string right = right_side(form);
 
-        for (auto& t : extract_terms(left))  parse_term(t, true);
-        for (auto& t : extract_terms(right)) parse_term(t, false);
+        vector<string> left_terms = extract_terms(left);
+        for (int i = 0; i < (int)left_terms.size(); i++) {
+            parse_term(left_terms[i], true);
+        }
+
+        vector<string> right_terms = extract_terms(right);
+        for (int i = 0; i < (int)right_terms.size(); i++) {
+            parse_term(right_terms[i], false);
+        }
     }
 
     void print_equation() const {
         bool first = true;
 
-        for (auto& p : variables) {
-            if (p.second == 0.0) continue;
+        for (map<string, float>::const_iterator it = variables.begin(); it != variables.end(); ++it) {
+            if (it->second == 0.0) continue;
 
-            float coef = p.second;
+            float coef = it->second;
 
             if (!first) {
                 if (coef > 0) cout << "+";
             }
 
-            cout << coef << p.first;
+            cout << coef << it->first;
             first = false;
         }
 
@@ -108,7 +109,7 @@ public:
     }
 
     float get_coef(const string& var) const {
-        auto it = variables.find(var);
+        map<string, float>::const_iterator it = variables.find(var);
         if (it != variables.end()) return it->second;
         return 0.0;
     }
@@ -119,8 +120,9 @@ public:
         result.variables = variables;
         result.constant_value = constant_value;
 
-        for (auto& p : other.variables)
-            result.variables[p.first] += p.second;
+        for (map<string, float>::const_iterator it = other.variables.begin(); it != other.variables.end(); ++it) {
+            result.variables[it->first] += it->second;
+        }
 
         result.constant_value += other.constant_value;
 
@@ -133,8 +135,9 @@ public:
         result.variables = variables;
         result.constant_value = constant_value;
 
-        for (auto& p : other.variables)
-            result.variables[p.first] -= p.second;
+        for (map<string, float>::const_iterator it = other.variables.begin(); it != other.variables.end(); ++it) {
+            result.variables[it->first] -= it->second;
+        }
 
         result.constant_value -= other.constant_value;
 
@@ -143,8 +146,9 @@ public:
 
     Equation scale(float s) const {
         Equation result;
-        for (auto& p : variables)
-            result.variables[p.first] = p.second * s;
+        for (map<string, float>::const_iterator it = variables.begin(); it != variables.end(); ++it) {
+            result.variables[it->first] = it->second * s;
+        }
         result.constant_value = constant_value * s;
         return result;
     }
@@ -165,14 +169,16 @@ public:
 set<string> get_all_vars(const vector<Equation>& eqs) {
     set<string> vars;
 
-    for (auto& e : eqs)
-        for (auto& p : e.variables)
-            vars.insert(p.first);
+    for (int i = 0; i < (int)eqs.size(); i++) {
+        for (map<string, float>::const_iterator it = eqs[i].variables.begin(); it != eqs[i].variables.end(); ++it) {
+            vars.insert(it->first);
+        }
+    }
 
     return vars;
 }
 
-float determinant(vector<vector<float>>& mat, int n) {
+float determinant(vector<vector<float> >& mat, int n) {
     if (n == 1) return mat[0][0];
 
     if (n == 2) return mat[0][0]*mat[1][1] - mat[0][1]*mat[1][0];
@@ -180,7 +186,7 @@ float determinant(vector<vector<float>>& mat, int n) {
     float det = 0;
 
     for (int col = 0; col < n; col++) {
-        vector<vector<float>> sub(n-1, vector<float>(n-1));
+        vector<vector<float> > sub(n-1, vector<float>(n-1));
         for (int r = 1; r < n; r++) {
             int sc = 0;
             for (int c = 0; c < n; c++) {
@@ -234,8 +240,9 @@ int main() {
         else if (op == "column") {
             string var;
             iss >> var;
-            for (auto& eq : equations)
-                cout << eq.get_coef(var) << "\n";
+            for (int k = 0; k < (int)equations.size(); k++) {
+                cout << equations[k].get_coef(var) << "\n";
+            }
         }
         else if (op == "add") {
             int i, j;
@@ -294,7 +301,7 @@ int main() {
             vector<string> vars(varsSet.begin(), varsSet.end());
             int sz = vars.size();
 
-            vector<vector<float>> mat(n, vector<float>(sz));
+            vector<vector<float> > mat(n, vector<float>(sz));
             for (int r = 0; r < n; r++)
                 for (int c = 0; c < sz; c++)
                     mat[r][c] = equations[r].get_coef(vars[c]);
@@ -306,7 +313,7 @@ int main() {
             vector<string> vars(varsSet.begin(), varsSet.end());
             int sz = vars.size();
 
-            vector<vector<float>> mat(n, vector<float>(sz));
+            vector<vector<float> > mat(n, vector<float>(sz));
             vector<float> rhs(n);
             for (int r = 0; r < n; r++) {
                 for (int c = 0; c < sz; c++)
@@ -320,7 +327,7 @@ int main() {
                 cout << "No Solution\n";
             } else {
                 for (int c = 0; c < sz; c++) {
-                    vector<vector<float>> modified = mat;
+                    vector<vector<float> > modified = mat;
 
                     for (int r = 0; r < n; r++)
                         modified[r][c] = rhs[r];
